@@ -1,4 +1,4 @@
-// options.js - quản lý tools & API keys
+// options.js - quản lý tools & API keys (đã làm rõ logic thêm/xóa/lưu)
 (async function(){
   const keyOpen = document.getElementById('key-openai');
   const keyGoogle = document.getElementById('key-google');
@@ -8,23 +8,43 @@
   const saveBtn = document.getElementById('save');
   const status = document.getElementById('status');
 
+  // Helper: render list of tools (preserve tool.id)
   function renderTools(list){
     toolsContainer.innerHTML = '';
     list.forEach((t, idx)=>{
       const div = document.createElement('div');
       div.className = 'tool-row';
-      div.innerHTML = `<input type="text" data-idx="${idx}" class="tool-name" value="${t.name}"/>
-        <select data-idx="${idx}" class="tool-enabled"><option value="1">Enabled</option><option value="0">Disabled</option></select>
-        <button data-idx="${idx}" class="remove">X</button>`;
+      // store the tool id in data-id so we keep it across edits
+      div.innerHTML = `<input type="text" data-id="${t.id}" class="tool-name" value="${t.name}"/>
+        <select data-id="${t.id}" class="tool-enabled"><option value="1">Enabled</option><option value="0">Disabled</option></select>
+        <button data-id="${t.id}" class="remove">X</button>`;
       const sel = div.querySelector('.tool-enabled');
       sel.value = t.enabled ? '1' : '0';
       toolsContainer.appendChild(div);
 
+      // remove button
       div.querySelector('.remove').addEventListener('click', ()=>{
-        list.splice(idx,1);
-        renderTools(list);
+        // remove this tool from DOM and leave re-render to caller by reconstructing list
+        const current = getCurrentTools();
+        const filtered = current.filter(tool => tool.id !== t.id);
+        renderTools(filtered);
       });
     });
+  }
+
+  // Helper: read current tools from DOM into an array (preserve ids)
+  function getCurrentTools(){
+    const rows = toolsContainer.querySelectorAll('.tool-row');
+    const tools = [];
+    rows.forEach((r)=>{
+      const nameEl = r.querySelector('.tool-name');
+      const enabledEl = r.querySelector('.tool-enabled');
+      const id = nameEl.dataset.id || ('custom-'+Date.now());
+      const name = (nameEl.value || '').trim() || 'Unnamed tool';
+      const enabled = enabledEl.value === '1';
+      tools.push({ id, name, enabled });
+    });
+    return tools;
   }
 
   async function load() {
@@ -43,28 +63,20 @@
   }
 
   addToolBtn.addEventListener('click', ()=>{
-    // push a new custom tool
-    const data = []; // reconstruct from current
-    const rows = toolsContainer.querySelectorAll('.tool-row');
-    rows.forEach((r, idx)=> {
-      const name = r.querySelector('.tool-name').value || `tool-${idx}`;
-      const enabled = r.querySelector('.tool-enabled').value === '1';
-      data.push({ id: 'custom-'+Date.now()+idx, name, enabled});
-    });
-    data.push({ id: 'custom-'+Date.now(), name: 'New Tool', enabled: true });
-    renderTools(data);
+    // get current list and append a new tool
+    const current = getCurrentTools();
+    const newTool = { id: 'custom-' + Date.now(), name: 'New Tool', enabled: true };
+    current.push(newTool);
+    renderTools(current);
+    // focus the new tool's name field
+    setTimeout(() => {
+      const last = toolsContainer.querySelector('.tool-row:last-child .tool-name');
+      if (last) last.focus();
+    }, 20);
   });
 
   saveBtn.addEventListener('click', async ()=>{
-    // gather tools
-    const rows = toolsContainer.querySelectorAll('.tool-row');
-    const tools = [];
-    rows.forEach((r, idx)=>{
-      const name = r.querySelector('.tool-name').value || `tool-${idx}`;
-      const enabled = r.querySelector('.tool-enabled').value === '1';
-      const idAttr = r.querySelector('.tool-name').dataset.idx;
-      tools.push({ id: 'custom-'+idx, name, enabled });
-    });
+    const tools = getCurrentTools();
 
     const apiKeys = {
       openai: keyOpen.value.trim(),
