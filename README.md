@@ -1,11 +1,12 @@
-# Pro Sider AI - Chrome Extension (scaffold)
+# Pro Side Bar - Chrome Extension (scaffold)
 
 Mục tiêu: một assistant xuất hiện dạng cửa sổ bên phải (sidebar/floating iframe) có:
 - Chọn công cụ AI (ChatGPT, Gemini, Claude, ...)
 - Quản lý API keys (trên trang Options)
-- Lưu lịch sử tương tác
+- Dịch, giải thích bằng AI văn bản được chọn.
 - OCR: upload ảnh hoặc chụp vùng màn hình
 - Chat với PDF: upload PDF -> trích xuất text -> hỏi AI
+- Lưu lịch sử tương tác
 
 Hướng dẫn cài đặt (local, unpacked):
 1. Mở Chrome > chrome://extensions/
