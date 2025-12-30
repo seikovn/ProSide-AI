@@ -1,5 +1,5 @@
 // inject.js
-// Chèn iframe sidebar vào page (right fixed panel) và thêm nút floating để show/hide
+// Chèn iframe sidebar vào page (right fixed panel) và thêm logo nhỏ để show/hide
 // Nếu đã có thì không chèn lại.
 
 (function() {
@@ -25,31 +25,50 @@
   iframe.style.transform = 'translateX(0)'; // visible by default
   iframe.setAttribute('aria-hidden', 'false');
 
-  // Create floating show button (small pill)
-  const showBtn = document.createElement('button');
-  showBtn.id = 'pro-side-ai-show-btn';
-  showBtn.type = 'button';
-  showBtn.textContent = 'Hiện ProSider';
-  showBtn.title = 'Hiện ProSider AI';
-  Object.assign(showBtn.style, {
+  // Collapsed logo/tab (small vertical pill at right center)
+  const collapsedTab = document.createElement('button');
+  collapsedTab.id = 'pro-side-ai-collapsed-tab';
+  collapsedTab.type = 'button';
+  collapsedTab.title = 'Mở ProSider AI';
+  collapsedTab.setAttribute('aria-label', 'Mở ProSider AI');
+  // simple SVG logo (keeps size small)
+  collapsedTab.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" style="display:block;color:white"><path fill="currentColor" d="M3 12a9 9 0 1 0 13.9-7.8L12 7 3 4v8z"/></svg>`;
+  Object.assign(collapsedTab.style, {
     position: 'fixed',
-    right: '20px',
-    bottom: '20px',
+    right: '6px',
+    top: '50%',
+    transform: 'translateY(-50%)',
     zIndex: '2147483648',
-    padding: '10px 14px',
+    width: '40px',
+    height: '40px',
+    padding: '6px',
     background: 'linear-gradient(90deg,#4f46e5,#06b6d4)',
     color: 'white',
     border: 'none',
-    borderRadius: '999px',
+    borderRadius: '10px',
     boxShadow: '0 8px 26px rgba(6,182,212,0.12)',
     cursor: 'pointer',
-    display: 'none' // hidden by default
+    display: 'none', // hidden by default (shown when collapsed)
+    alignItems: 'center',
+    justifyContent: 'center'
   });
 
   // Append to DOM (body preferred)
   const parentEl = document.body || document.documentElement;
-  parentEl.appendChild(iframe);
-  parentEl.appendChild(showBtn);
+  try {
+    parentEl.appendChild(iframe);
+    parentEl.appendChild(collapsedTab);
+  } catch (err) {
+    // fallback: try document.documentElement
+    try {
+      document.documentElement.appendChild(iframe);
+      document.documentElement.appendChild(collapsedTab);
+    } catch (e) {
+      console.warn('ProSide: cannot inject UI', e);
+      window.__proSideAIInjected = false;
+      return;
+    }
+  }
 
   // Safe localStorage getter/setter
   function storageSet(val) {
@@ -66,14 +85,15 @@
       iframe.setAttribute('aria-hidden', 'true');
       iframe.style.opacity = '0';
       iframe.style.pointerEvents = 'none';
-      showBtn.style.display = 'flex';
-      showBtn.focus();
+      collapsedTab.style.display = 'flex';
+      try { collapsedTab.focus(); } catch(e) {}
     } else {
       iframe.style.transform = 'translateX(0)';
       iframe.setAttribute('aria-hidden', 'false');
       iframe.style.opacity = '1';
       iframe.style.pointerEvents = 'auto';
-      showBtn.style.display = 'none';
+      collapsedTab.style.display = 'none';
+      try { iframe.focus(); } catch(e) {}
     }
     if (persist) storageSet(hidden);
   }
@@ -84,31 +104,35 @@
   else setHidden(false, false);
 
   // Click handlers
-  showBtn.addEventListener('click', () => setHidden(false));
-  // We will listen for messages from iframe to toggle/hide/close
+  collapsedTab.addEventListener('click', () => setHidden(false));
 
   // Message handler from iframe (sidebar)
   function onMessage(ev) {
+    // SECURITY: only accept messages that actually come from our iframe
+    if (ev.source !== iframe.contentWindow) return;
     const data = ev.data;
     if (!data || typeof data !== 'object') return;
     if (data.type === 'closeProSideAI') {
-      // remove iframe and show button
+      // old behavior: remove all. Keep for compatibility (if iframe wants full removal)
       removeAll();
-    } else if (data.type === 'hideProSideAI' || data.type === 'toggleProSideAI') {
-      // hide (or toggle)
-      const isHidden = iframe.style.transform !== 'translateX(0)' && iframe.getAttribute('aria-hidden') === 'true';
-      if (data.type === 'hideProSideAI') setHidden(true);
-      else setHidden(!isHidden);
+    } else if (data.type === 'hideProSideAI') {
+      setHidden(true);
+    } else if (data.type === 'toggleProSideAI') {
+      const isHidden = iframe.getAttribute('aria-hidden') === 'true';
+      setHidden(!isHidden);
+    } else if (data.type === 'collapseProSideAI') {
+      // new: collapse to small logo (do not remove iframe)
+      setHidden(true);
     }
   }
   window.addEventListener('message', onMessage, false);
 
-  // Cleanup function to remove injected elements and listeners
+  // Cleanup function to remove injected elements and listeners (rare)
   function removeAll() {
     try { window.removeEventListener('message', onMessage, false); } catch(e){}
     const el = document.getElementById('pro-side-ai-iframe');
     if (el && el.parentNode) el.parentNode.removeChild(el);
-    const btn = document.getElementById('pro-side-ai-show-btn');
+    const btn = document.getElementById('pro-side-ai-collapsed-tab');
     if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
     window.__proSideAIInjected = false;
   }
