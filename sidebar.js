@@ -4,8 +4,8 @@ const userInput = document.getElementById('user-input');
 const btnSend = document.getElementById('btn-send');
 const btnClose = document.getElementById('btn-close');
 const btnSettings = document.getElementById('btn-settings');
-const btnOcr = document.getElementById('btn-ocr');
-const fileInput = document.getElementById('file-input');
+// const btnOcr = document.getElementById('btn-ocr'); // Tạm tắt
+// const fileInput = document.getElementById('file-input'); // Tạm tắt
 const modelSelect = document.getElementById('model-select');
 
 // Thêm tin nhắn vào khung chat
@@ -30,6 +30,7 @@ async function callAI(prompt) {
   try {
     if (model === 'gemini') {
       if (!keys.google) throw new Error("Thiếu Google API Key");
+      // Dùng model gemini-pro hoặc gemini-1.5-flash
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${keys.google}`;
       const res = await fetch(url, {
         method: 'POST',
@@ -37,7 +38,8 @@ async function callAI(prompt) {
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
       const json = await res.json();
-      responseText = json.candidates?.[0]?.content?.parts?.[0]?.text || "Lỗi nhận phản hồi.";
+      if (json.error) throw new Error(json.error.message);
+      responseText = json.candidates?.[0]?.content?.parts?.[0]?.text || "Lỗi: Không nhận được phản hồi.";
     } 
     else if (model === 'openai') {
       if (!keys.openai) throw new Error("Thiếu OpenAI API Key");
@@ -53,7 +55,8 @@ async function callAI(prompt) {
         })
       });
       const json = await res.json();
-      responseText = json.choices?.[0]?.message?.content || "Lỗi nhận phản hồi.";
+      if (json.error) throw new Error(json.error.message);
+      responseText = json.choices?.[0]?.message?.content || "Lỗi: Không nhận được phản hồi.";
     }
   } catch (err) {
     responseText = "Lỗi: " + err.message;
@@ -73,6 +76,7 @@ btnSend.addEventListener('click', () => {
 
 // Xử lý nút Đóng
 btnClose.addEventListener('click', () => {
+  // Gửi tin nhắn ra ngoài để content.js biết mà đóng iframe
   window.parent.postMessage({ type: 'CLOSE_SIDEBAR' }, '*');
 });
 
@@ -81,25 +85,11 @@ btnSettings.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'openOptions' });
 });
 
-// Xử lý OCR (Đọc ảnh)
-btnOcr.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  addMessage("[Đang đọc văn bản từ ảnh...]", 'user');
-  
-  const worker = await Tesseract.createWorker('eng'); // Mặc định tiếng Anh, có thể thêm 'vie'
-  const { data: { text } } = await worker.recognize(file);
-  await worker.terminate();
-  
-  addMessage("Nội dung trong ảnh:\n" + text, 'ai');
-});
-
 // Nhận tin nhắn từ Menu bôi đen (content.js gửi vào)
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'AUTO_PROMPT') {
     const prompt = event.data.text;
-    addMessage(prompt, 'user');
-    callAI(prompt);
+    addMessage(prompt, 'user'); // Hiện câu hỏi của mình lên
+    callAI(prompt); // Gửi cho AI luôn
   }
 });
