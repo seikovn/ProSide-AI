@@ -1,4 +1,3 @@
-```markdown
 # Pro Sider AI - Chrome Extension (scaffold)
 
 Mục tiêu: một assistant xuất hiện dạng cửa sổ bên phải (sidebar/floating iframe) có:
@@ -29,4 +28,3 @@ Tiếp theo bạn có thể:
 - Triển khai hàm sendToAI cho từng provider (OpenAI Chat Completions / HTTP to Anthropic / Google Vertex AI / Deepseek).
 - Thêm UI để hiển thị token usage, costs, trạng thái kết nối.
 - Thêm authentication flow (OAuth) nếu muốn (vd. Google).
-```
