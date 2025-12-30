@@ -4,10 +4,16 @@
   const app = document.getElementById('app');
   const hideBtn = document.getElementById('hide-app');
   const hideLabel = document.getElementById('hide-label');
-  const hideIcon = document.getElementById('hide-icon');
   const collapsedBar = document.getElementById('collapsed-bar');
   const showBtn = document.getElementById('show-app');
   const appContent = document.getElementById('app-content');
+
+  // If required DOM nodes are missing, bail out gracefully.
+  if (!app || !hideBtn || !hideLabel || !collapsedBar || !showBtn) {
+    // Do not throw — just avoid errors. Useful when this script is loaded in other contexts.
+    console.warn('ProSider: some UI elements are missing; hide/show disabled.');
+    return;
+  }
 
   function setHidden(hidden, persist = true) {
     if (hidden) {
@@ -25,31 +31,47 @@
       hideLabel.textContent = 'Ẩn';
       collapsedBar.hidden = true;
     }
-    if (persist) localStorage.setItem(APP_KEY, hidden ? '1' : '0');
+    if (persist) {
+      try {
+        localStorage.setItem(APP_KEY, hidden ? '1' : '0');
+      } catch (err) {
+        console.warn('ProSider: cannot access localStorage', err);
+      }
+    }
   }
 
-  // init from storage
-  const stored = localStorage.getItem(APP_KEY);
+  // Toggle helper (toggle current state)
+  function toggleHidden() {
+    const isHidden = app.classList.contains('collapsed');
+    setHidden(!isHidden);
+  }
+
+  // init from storage (safe)
+  let stored = null;
+  try { stored = localStorage.getItem(APP_KEY); } catch(e) { /* ignore */ }
   if (stored === '1') {
     setHidden(true, false);
   } else {
     setHidden(false, false);
   }
 
-  hideBtn.addEventListener('click', () => setHidden(true));
+  // Attach listeners
+  hideBtn.addEventListener('click', toggleHidden);
   showBtn.addEventListener('click', () => setHidden(false));
 
-  // keyboard shortcut 'H' to toggle
+  // keyboard shortcut 'H' to toggle (ignore when typing into input/textarea)
   window.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() === 'h' && !/input|textarea/i.test(document.activeElement.tagName)) {
+    if (e.key && e.key.toLowerCase() === 'h' && !/input|textarea/i.test(document.activeElement.tagName)) {
       e.preventDefault();
-      const isHidden = app.classList.contains('collapsed');
-      setHidden(!isHidden);
+      toggleHidden();
     }
   });
 
-  // optional: nice touch - restore focus to show button when hidden
+  // When we hide, move focus to the show button (nice touch)
+  // Keep this separate but guarded
   hideBtn.addEventListener('click', () => {
-    setTimeout(() => showBtn.focus(), 220);
+    setTimeout(() => {
+      try { showBtn.focus(); } catch (err) { /* ignore */ }
+    }, 220);
   });
 })();
