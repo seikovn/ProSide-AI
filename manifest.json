@@ -1,1 +1,50 @@
-{ "manifest_version": 3, "name": "Pro Side AI", "description": "Right-side AI assistant with multiple models, OCR, PDF chat and interaction history.", "version": "0.1.0", "permissions": [ "storage", "activeTab", "scripting", "tabs" ], "host_permissions": [ "<all_urls>" ], "background": { "service_worker": "background.js" }, "action": { "default_title": "Pro Side AI" }, "content_scripts": [ { "matches": ["<all_urls>"], "js": ["inject.js"], "run_at": "document_idle" } ], "options_ui": { "page": "options.html", "open_in_tab": true }, "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }, "web_accessible_resources": [ { "resources": [ "sidebar.html", "sidebar.css", "sidebar.js", "options.html", "options.js", "icons/*" ], "matches": ["<all_urls>"] } ] }
+{
+  "manifest_version": 3,
+  "name": "Pro Side AI",
+  "description": "Right-side AI assistant with multiple models, OCR, PDF chat and interaction history.",
+  "version": "0.1.0",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Pro Side AI"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["inject.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sidebar.html",
+        "sidebar.css",
+        "sidebar.js",
+        "options.html",
+        "options.js",
+        "icons/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
